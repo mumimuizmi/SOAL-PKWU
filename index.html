@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Latihan Soal PKKWU Interaktif</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --bg-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .score-board {
+            position: sticky;
+            top: 10px;
+            background: var(--card-color);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 25px;
+            font-weight: bold;
+            z-index: 100;
+        }
+
+        .question-card {
+            background: var(--card-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .options-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .option-item {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .option-item:hover {
+            background: #e9ecef;
+            border-color: #ced4da;
+        }
+
+        /* State ketika opsi dipilih */
+        .option-item.correct {
+            background-color: #d4edda !important;
+            border-color: var(--success-color) !important;
+            color: #155724;
+            font-weight: bold;
+        }
+
+        .option-item.wrong {
+            background-color: #f8d7da !important;
+            border-color: var(--error-color) !important;
+            color: #721c24;
+        }
+
+        /* Menonaktifkan klik setelah terjawab */
+        .disabled {
+            pointer-events: none;
+        }
+
+        .explanation {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border-left: 4px solid var(--primary-color);
+            background: #eef5fc;
+            border-radius: 0 6px 6px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Kuis Mandiri PKKWU</h1>
+        <p>HAKI, Perencanaan Usaha, dan Proposal Usaha</p>
+    </header>
+
+    <div class="score-board">
+        <div>Benar: <span id="correct-count" style="color: var(--success-color);">0</span></div>
+        <div>Salah: <span id="wrong-count" style="color: var(--error-color);">0</span></div>
+    </div>
+
+    <div id="quiz-container"></div>
+</div>
+
+<script>
+    // Data seluruh soal beserta pilihan jawaban dan indeks kunci jawaban (0=A, 1=B, 2=C, dst.)
+    const quizData = [
+        {
+            q: "Hak intelektual berasal dari kegiatan kreatif dari daya pikir manusia yang memiliki manfaat dan nilai ekonomi yang akan memberi keuntungan kepada pemilik hak cipta. Dalam HAKI, hal tersebut merupakan prinsip…",
+            options: ["kebudayaan", "ekonomi", "ciptaan", "social", "keadilan"],
+            ans: 1
+        },
+        {
+            q: "Tanda berupa gambar, nama, kata, huruf, angka, susunan warna, atau kombinasi dari unsur-unsur tersebut yang digunakan untuk membedakan suatu produk dengan produk lain disebut…",
+            options: ["Merek", "Rahasia dagang", "Desain industry", "Desain sirkuit", "Indikasi desain"],
+            ans: 0
+        },
+        {
+            q: "Tujuan dari pelaksanaan hukum hak cipta, yaitu…",
+            options: [
+                "Melindungi hak pembuat dalam mendistribusikan, menjual, atau membuat turunan dari karya tersebut",
+                "Melindungi hak pengguna dalam menggandakan",
+                "Melindungi pengusaha dalam menarik keuntungan",
+                "Mengurangi manipulasi",
+                "Melindungi hak Masyarakat memakai secara bebas"
+            ],
+            ans: 0
+        },
+        {
+            q: "Di Indonesia, hak cipta diatur dalam UU Nomor…",
+            options: ["31 Tahun 2000", "19 Tahun 2002", "29 Tahun 2000", "14 Tahun 2001", "15 Tahun 2001"],
+            ans: 1
+        },
+        {
+            q: "Masa berlaku HAKI yang memiliki jangka waktu seumur hidup, serta mendapatkan waktu 70 tahun setelah meninggal, yang dimaksud adalah …",
+            options: ["Hak paten", "Hak Cipta", "Desain industri", "Rahasia dagang", "Merek"],
+            ans: 1
+        },
+        {
+            q: "Royalti adalah …",
+            options: ["Hukuman pelanggaran", "Pajak karya", "Imbalan atas penggunaan karya", "Biaya pendaftaran", "Denda hukum"],
+            ans: 2
+        },
+        {
+            q: "Lembaga yang mengelola HAKI di Indonesia adalah …",
+            options: ["BPS", "Kemdikbud", "DJKI", "KPU", "OJK"],
+            ans: 2
+        },
+        {
+            q: "Dokumen pengajuan HAKI berbentuk surat yang menyatakan bahwa seseorang ingin mengajukan perlindungan kepada Direktorat Jenderal HAKI, agar apa yang sudah diciptakan tidak diklaim oleh orang disebut…",
+            options: ["Surat penyataan hak", "Surat pengalihan hak", "Surat kuasa", "Akta pendirian badan hukum", "NPWP usaha badan hukum"],
+            ans: 0
+        },
+        {
+            q: "Seorang siswa memiliki logo usaha tetapi belum mendaftarkannya ke HAKI. Risiko terbesar dari kondisi tersebut adalah…",
+            options: ["Logo tidak bisa digunakan", "Logo tidak memiliki nilai jual", "Logo dapat diklaim atau ditiru pihak lain", "Logo tidak bisa dipromosikan", "Logo tidak bisa diubah"],
+            ans: 2
+        },
+        {
+            q: "Mengapa pendaftaran HAKI dapat meningkatkan nilai ekonomi suatu karya?",
+            options: [
+                "Karena karya menjadi gratis",
+                "Because karya tidak bisa digunakan lagi",
+                "Karena karya memiliki perlindungan dan dapat dikomersialkan",
+                "Karena karya hanya untuk pribadi",
+                "Karena tidak perlu promosi"
+            ],
+            ans: 2
+        },
+        {
+            q: "Jika seseorang tidak melengkapi dokumen seperti deskripsi karya dan identitas saat pendaftaran, maka kemungkinan yang terjadi adalah…",
+            options: ["Pendaftaran langsung diterima", "Proses lebih cepat", "Pendaftaran ditolak atau tertunda", "Tidak perlu dokumen", "Tetap mendapatkan sertifikat"],
+            ans: 2
+        },
+        {
+            q: "Lembaga resmi yang menangani pendaftaran HAKI di Indonesia adalah…",
+            options: [
+                "Kementerian Pendidikan",
+                "DJKI di bawah Kementerian Hukum dan HAM",
+                "Kementerian Perdagangan",
+                "Bank Indonesia",
+                "Otoritas Jasa Keuangan"
+            ],
+            ans: 1
+        },
+        {
+            q: "Perhatikan langkah berikut:<br>1) Menentukan jenis HAKI<br>2) Pemeriksaan oleh DJKI<br>3) Menyiapkan dokumen<br>4) Penerbitan sertifikat<br>5) Mendaftar online<br><br>Urutan yang benar adalah…",
+            options: ["(1)-(3)-(5)-(2)-(4)", "(1)-(5)-(3)-(2)-(4)", "(3)-(1)-(5)-(2)-(4)", "(1)-(3)-(2)-(5)-(4)", "(5)-(1)-(3)-(2)-(4)"],
+            ans: 0
+        },
+        {
+            q: "Seorang siswa mendaftarkan karya orang lain sebagai miliknya. Tindakan tersebut menunjukkan…",
+            options: ["Kreativitas tinggi", "Kepatuhan hukum", "Pelanggaran HAKI dan etika", "Strategi bisnis", "Inovasi usaha"],
+            ans: 2
+        },
+        {
+            q: "Mengapa surat pernyataan kepemilikan karya diperlukan dalam pendaftaran HAKI?",
+            options: ["Untuk mempercepat promosi", "Sebagai bukti bahwa karya asli milik pemohon", "Untuk mengurangi biaya", "Agar karya cepat terkenal", "Untuk mengganti dokumen lain"],
+            ans: 1
+        },
+        {
+            q: "Seorang siswa telah mendaftarkan HAKI dan mendapatkan sertifikat. Dampak positif yang paling tepat adalah…",
+            options: [
+                "Karya tidak bisa digunakan orang lain sama sekali",
+                "Karya bebas digunakan siapa saja",
+                "Karya memiliki perlindungan hukum dan nilai tambah usaha",
+                "Karya tidak bisa dikembangkan",
+                "Karya tidak bisa dijual"
+            ],
+            ans: 2
+        },
+        {
+            q: "Seorang pengusaha memiliki resep minuman yang tidak dibagikan ke publik agar tetap unggul. Hal ini termasuk dalam…",
+            options: ["Hak cipta", "Paten", "Merek", "Rahasia dagang", "Indikasi geografis"],
+            ans: 3
+        },
+        {
+            q: "Perbedaan utama antara paten dan hak cipta adalah…",
+            options: [
+                "Paten untuk seni, hak cipta untuk teknologi",
+                "Paten untuk penemuan teknologi, hak cipta untuk karya seni/sastra",
+                "Paten tidak memiliki nilai ekonomi",
+                "Hak cipta harus didaftarkan, paten tidak",
+                "Keduanya tidak memiliki perlindungan hukum"
+            ],
+            ans: 1
+        },
+        {
+            q: "Seorang siswa mengutip karya orang lain tanpa mencantumkan sumber dalam tugasnya. Sikap yang seharusnya dilakukan adalah…",
+            options: [
+                "Tetap menggunakan tanpa perubahan",
+                "Mengganti sedikit kata",
+                "Mencantumkan sumber sebagai bentuk menghargai HAKI",
+                "Menghapus karya tersebut sepenuhnya",
+                "Menyembunyikan sumber asli"
+            ],
+            ans: 2
+        },
+        {
+            q: "Salah satu komponen penting dalam perencanaan usaha adalah analisis pasar. Analisis pasar bertujuan untuk …",
+            options: [
+                "Menentukan warna produk yang disukai pemilik usaha",
+                "Mengetahui jumlah pesaing dan kebutuhan konsumen",
+                "Menentukan lokasi rumah pemilik usaha",
+                "Menentukan jumlah karyawan di perusahaan lain",
+                "Menghitung pajak perusahaan"
+            ],
+            ans: 1
+        },
+        {
+            q: "Pelaku usaha harus melakukan analisis pesaing pada perencanaan usaha. Berikut ini merupakan manfaat dari analisis pesaing, yaitu …",
+            options: [
+                "Menentukan proyeksi keuangan",
+                "Mengidentifikasi kekuatan internal Perusahaan",
+                "Menganalisis startegi pesaing dan posisi pasar",
+                "Mengevaluasi dampak lingkungan",
+                "Merancang rencana pemasran bisnis"
+            ],
+            ans: 2
+        },
+        {
+            q: "Kondisi dimana total pendapatan usaha sama dengan total biaya yang dikeluarkan, sehingga usaha tersebut tidak merugi. Berikut adalah pengertian dari …",
+            options: ["Biaya Variabel", "BEP", "ROI", "Analisis usaha", "Laba rugi"],
+            ans: 1
+        },
+        {
+            q: "Salah satu indikator untuk menilai kelayakan usaha dari aspek keuangan usaha, yaitu analisis Break Even Point (BEP). Berikut pernyataan yang benar mengenai BEP, yaitu …",
+            options: [
+                "Titik di mana bisnis mencapai keuntungan maksimal",
+                "Titik di mana pendapatan sama dengan biaya",
+                "Titik di mana biaya melebihi pendapatan",
+                "Titik di mana bisnis menghadapi kebangkrutan",
+                "Titik di mana bisnis mencapai target penjualan"
+            ],
+            ans: 1
+        },
+        {
+            q: "Cermati pernyataan berikut ini!<br>1) Menganalisis Tingkat persaingan di pasar.<br>2) Menganalisis titik impas usaha.<br>3) Menganalisis kelebihan dan kelemahan usaha.<br>4) Menganalisis biaya produksi.<br>5) Memperkirakan Tingkat pengembalian investasi.<br><br>Berdasarkan pernyataan di atas yang termasuk studi kelayakan usaha berdasarkan aspek keuangan ditunjukkan oleh nomor …",
+            options: ["1,2,dan 3", "1,2 dan 4", "2,3 dan 4", "2,4 dan 5", "3,4 dan 5"],
+            ans: 3
+        },
+        {
+            q: "Tati studio merupakan Perusahaan yang menyediakan jasa pengembangan website. Pada awal pendiriannya, mengeluarkan modal investasi sebesar Rp.18,200,000,00. Setelah beroperasi selama 2 bulan mampu menghasilkan laba sebesar Rp.6,400,000,00. ROI dari usaha tersebut sebesar … %<br><small><i>Rumus: (Laba / Modal) x 100%</i></small>",
+            options: ["25,16%", "29,18%", "33,22%", "35,16%", "35,45%"],
+            ans: 3 // Perhitungan: (6.400.000 / 18.200.000) * 100% = 35.16%
+        },
+        {
+            q: "Suatu Perusahaan bekerja dengan biaya tetap sebesar Rp.307,500,000. biaya variable per unit Rp.1.200.000. harga jual per unit Rp.1,500,000. agar tercapai BEP, maka jumlah produksi sebanyak…unit.<br><small><i>Rumus: Biaya Tetap / (Harga Jual - Biaya Variabel)</i></small>",
+            options: ["1.000", "1.025", "1.050", "1.075", "1.100"],
+            ans: 1 // Perhitungan: 307.500.000 / (1.500.000 - 1.200.000) = 307.500.000 / 300.000 = 1.025
+        },
+        {
+            q: "Suatu perusahaan bekerja dengan biaya tetap sebesar Rp307.500.000. Biaya variabel per unit Rp1.200.000 dan harga jual per unit Rp1.500.000. Agar tercapai BEP dalam rupiah, maka penjualan yang harus dicapai adalah…<br><small><i>Rumus: BEP Unit x Harga Jual</i></small>",
+            options: ["Rp1.500.000.000", "Rp1.525.000.000", "Rp1.537.500.000", "Rp1.550.000.000", "Rp1.575.000.000"],
+            ans: 2 // Perhitungan: 1.025 unit * Rp 1.500.000 = Rp 1.537.500.000
+        },
+        {
+            q: "Sebuah usaha sablon kaos mengeluarkan biaya tetap sebesar Rp.5,400,000,00 per bulan dan biaya variable Rp.8.000,00 per pcs. Jika selama satu bulan mampu menghasilkan 1.200 pcs kaos, berapa total biaya produksinya …<br><small><i>Rumus: Biaya Tetap + (Biaya Variabel x Jumlah Produksi)</i></small>",
+            options: ["Rp.15,000,000,00", "Rp.10,000,000,00", "Rp.8,000,000,00", "Rp.45,000,000,00", "Rp.50,000,000,00"],
+            ans: 0 // Perhitungan: 5.400.000 + (8.000 * 1.200) = 5.400.000 + 9.600.000 = 15.000.000
+        },
+        {
+            q: "Sebuah usaha minuman memiliki biaya tetap Rp2.000.000 dan biaya variabel Rp5.000 per unit. Jika harga jual Rp10.000 per unit, maka BEP (unit) adalah…",
+            options: ["200 unit", "300 unit", "400 unit", "500 unit", "600 unit"],
+            ans: 2 // Perhitungan: 2.000.000 / (10.000 - 5.000) = 400 unit
+        },
+        {
+            q: "Perhatikan data berikut: Biaya tetap = Rp1.500.000 Biaya variabel/unit = Rp3.000 Harga jual/unit = Rp6.000, maka BEP (unit) adalah…",
+            options: ["250 unit", "300 unit", "400 unit", "500 unit", "600 unit"],
+            ans: 3 // Perhitungan: 1.500.000 / (6.000 - 3.000) = 500 unit
+        },
+        {
+            q: "Sebuah usaha memiliki: Modal = Rp8.000.000 Laba = Rp2.000.000, maka ROI usaha tersebut adalah…",
+            options: ["15%", "20%", "25%", "30%", "35%"],
+            ans: 2 // Perhitungan: (2.000.000 / 8.000.000) * 100% = 25%
+        },
+        {
+            q: "Jika ROI suatu usaha rendah, maka tindakan yang tepat adalah…",
+            options: ["Menambah biaya tetap", "Mengurangi penjualan", "Meningkatkan efisiensi biaya atau penjualan", "Menutup usaha langsung", "Mengabaikan keuntungan"],
+            ans: 2
+        },
+        {
+            q: "Mengapa penting menghitung BEP dalam usaha?",
+            options: ["Untuk menentukan jumlah karyawan", "Untuk mengetahui titik balik modal", "Untuk menentukan lokasi usaha", "Untuk membuat logo", "Untuk menghitung pajak"],
+            ans: 1
+        },
+        {
+            q: "Suatu usaha belum mencapai BEP. Kondisi ini berarti…",
+            options: ["Sudah memperoleh keuntungan", "Tidak mengalami biaya", "Masih mengalami kerugian", "Sudah balik modal", "Tidak perlu produksi"],
+            ans: 2
+        },
+        {
+            q: "Proposal usaha menjadi dokumen penting bagi pelaku usaha dalam menjalankan usahanya. Berikut ini merupakan alasan pentingnya penyusunan proposal, yaitu…",
+            options: [
+                "Mengenali persaingan di pasar",
+                "Mengidentifikasi jumlah konsumen",
+                "Meningkatkan pemahaman pelaku usaha mengenai pemodalan",
+                "Mengevaluasi kebijakan pada system produksi",
+                "Menarik minat investor agar menanamkan modalnya"
+            ],
+            ans: 4
+        },
+        {
+            q: "Pada proposal usaha ada analisis pasar. Berikut ini merupakan tujuan dari analisis pasar, yaitu…",
+            options: [
+                "Menentukan biaya produksi",
+                "Mengidentifikasi pesaing dan potensi pasar",
+                "Mengembangkan produk usaha",
+                "Mempertimbangkan sumber daya manusia yang dibutuhkan",
+                "Mengidentifikasi risiko yang mungkin terjadi"
+            ],
+            ans: 1
+        },
+        {
+            q: "Pada proposal usaha ada bagian profil usaha. Pada bagian ini menjelaskan tentang…",
+            options: ["Penjadwalan kegiatan usaha", "Sasaran pelanggan yang dituju", "Latar belakang pendirian usaha", "Biodata Perusahaan", "Proses produksi"],
+            ans: 3
+        },
+        {
+            q: "Berikut ini bentuk perencanaan produksi yang dijelaskan pada proposal usaha, yaitu…",
+            options: [
+                "Pembuatan rincian biaya pemasaran",
+                "Penjadwalan pelatihan karyawan",
+                "Penentuan kapasitas produksi selama periode waktu tertentu",
+                "Perencanaan penjualan mesin produksi",
+                "Penghitungan produk tidak layak jual"
+            ],
+            ans: 2
+        },
+        {
+            q: "Tentukan struktur proposal usaha yang paling tepat dibawah ini!",
+            options: [
+                "Latar Belakang, Profil Usaha, Visi dan Misi, Produk, Pemasaran, Produksi, Manajemen, Keuangan, Modal Investasi, Modal Kerja, Laba Usaha, Analisis Kelayakan Usaha, Penutup.",
+                "Latar Belakang, Tujuan, Produk, Harga, Promosi, Distribusi, Penutup",
+                "Latar Belakang, Profil Usaha, Visi dan Misi, Produk, Pemasaran, Produksi, Manajemen, Keuangan, Modal Investasi, Penutup",
+                "Pendahuluan, Isi, Analisis Kelayakan Usaha, Penutup",
+                "Semua jawaban benar"
+            ],
+            ans: 0
+        },
+        {
+            q: "Perhatikan kutipan proposal usaha berikut ini!<br><i>'Studio Arjuna menyediakan layanan fotografi kepada pelanggan. Kami melayani foto studio untuk berbagai keperluan, seperti foto pribadi, foto produk, foto couple, maupun foto keluarga...'</i><br>Kutipan proposal usaha di atas termasuk ke dalam bagian…",
+            options: ["Latar belakang", "Pemasaran", "Produksi", "Manajemen", "Keuangan"],
+            ans: 3
+        },
+        {
+            q: "Cermati pernyataan berikut ini!<br>1) Mencari investor untuk tambahan modal usaha.<br>2) Menambah jumlah pelanggan loyal.<br>3) Meminimalisir risiko dan kesalahan usaha.<br>4) Memperkenalkan usaha kepada Masyarakat luas.<br><br>Berdasarkan pernyataan di atas yang termasuk tujuan penyusunan proposal usaha ditunjukkan oleh nomor …",
+            options: ["1 dan 2", "1 dan 3", "2 dan 3", "2 dan 4", "3 dan 4"],
+            ans: 1
+        },
+        {
+            q: "Proposal usaha harus dibuat sejelas mungkin, baik mengenai jenis usaha, kepemilikan, risiko usaha maupun prospek keuntungannya. Hal tersebut menandakan proposal harus…",
+            options: ["Clear", "Complete", "Up to date", "Concise", "Correct"],
+            ans: 0
+        },
+        {
+            q: "Seorang wirausaha membuat proposal usaha tanpa menyertakan analisis pasar. Dampak paling mungkin dari kondisi tersebut adalah…",
+            options: [
+                "Usaha lebih cepat berkembang",
+                "Proposal lebih ringkas dan mudah dipahami",
+                "Risiko kegagalan usaha meningkat karena tidak memahami target pasar",
+                "Investor lebih tertarik karena proposal sederhana",
+                "Biaya usaha menjadi lebih kecil"
+            ],
+            ans: 2
+        },
+        {
+            q: "Perhatikan tujuan berikut:<br>(1) Menilai kelayakan usaha<br>(2) Menarik investor<br>(3) Menentukan harga produk pesaing<br>(4) Menjadi pedoman usaha<br><br>Tujuan utama proposal usaha ditunjukkan oleh nomor…",
+            options: ["(1), (2), dan (4)", "(1), (2), dan (3)", "(2), (3), dan (4)", "(1) dan (3)", "(3) dan (4)"],
+            ans: 0
+        },
+        {
+            q: "Bagian proposal yang berfungsi menjelaskan alasan suatu usaha didirikan adalah…",
+            options: ["Penutup", "Profil usaha", "Latar belakang", "Rencana keuangan", "Produk atau jasa"],
+            ans: 2
+        },
+        {
+            q: "Seorang wirausaha mampu meyakinkan investor setelah mempresentasikan proposalnya. Hal ini menunjukkan manfaat proposal usaha sebagai…",
+            options: ["Alat evaluasi usaha", "Pedoman operasional", "Sarana meningkatkan kepercayaan pihak lain", "Rencana produksi", "Catatan keuangan"],
+            ans: 2
+        },
+        {
+            q: "Apa hubungan antara proposal usaha dengan keberhasilan bisnis?",
+            options: [
+                "Tidak ada hubungan langsung",
+                "Proposal hanya formalitas",
+                "Proposal membantu perencanaan sehingga peluang sukses lebih besar",
+                "Proposal menjamin usaha pasti berhasil",
+                "Proposal hanya diperlukan di awal usaha"
+            ],
+            ans: 2
+        },
+        {
+            q: "Dalam struktur proposal usaha, bagian yang berisi strategi pemasaran dan target konsumen adalah…",
+            options: ["Rencana operasional", "Analisis pasar dan pemasaran", "Profil usaha", "Penutup", "Latar belakang"],
+            ans: 1
+        },
+        {
+            q: "Seorang siswa akan mempresentasikan proposal usaha, tetapi ia hanya fokus menyiapkan isi materi tanpa memperhatikan media presentasi. Dampak yang paling mungkin terjadi adalah…",
+            options: [
+                "Audiens lebih fokus pada isi dibanding tampilan",
+                "Presentasi tetap berjalan efektif tanpa hambatan",
+                "Audiens kesulitan memahami karena kurang visualisasi",
+                "Waktu presentasi menjadi lebih singkat",
+                "Penyaji terlihat lebih profesional"
+            ],
+            ans: 2
+        },
+        {
+            q: "Jika seorang presenter menggunakan terlalu banyak teks dalam slide, maka kemungkinan yang terjadi adalah…",
+            options: [
+                "Audiens lebih cepat memahami materi",
+                "Presentasi menjadi lebih menarik",
+                "Audiens bosan dan kehilangan fokus",
+                "Penyaji lebih percaya diri",
+                "Waktu presentasi menjadi lebih efisien"
+            ],
+            ans: 2
+        }
+    ];
+
+    let correctScore = 0;
+    let wrongScore = 0;
+
+    const quizContainer = document.getElementById('quiz-container');
+    const correctCountEl = document.getElementById('correct-count');
+    const wrongCountEl = document.getElementById('wrong-count');
+
+    // Fungsi Render Soal
+    function loadQuiz() {
+        quizData.forEach((data, qIndex) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.id = `q-card-${qIndex}`;
+
+            const qText = document.createElement('div');
+            qText.className = 'question-text';
+            qText.innerHTML = `${qIndex + 1}. ${data.q}`;
+            card.appendChild(qText);
+
+            const optionsList = document.createElement('ul');
+            optionsList.className = 'options-list';
+
+            data.options.forEach((option, oIndex) => {
+                const optionItem = document.createElement('li');
+                optionItem.className = 'option-item';
+                // Memberikan penanda opsi huruf A, B, C, D, E
+                const label = String.fromCharCode(65 + oIndex); 
+                optionItem.innerText = `${label}. ${option}`;
+                
+                // Tambahkan event click langsung respon
+                optionItem.addEventListener('click', () => handleAnswer(qIndex, oIndex, data.ans));
+                
+                optionsList.appendChild(optionItem);
+            });
+
+            card.appendChild(optionsList);
+
+            // Elemen kunci tambahan (opsional jika ingin menampilkan info kunci setelah klik)
+            const explanation = document.createElement('div');
+            explanation.className = 'explanation';
+            explanation.id = `ex-${qIndex}`;
+            explanation.innerHTML = `<strong>Kunci Jawaban:</strong> ${String.fromCharCode(65 + data.ans)}`;
+            card.appendChild(explanation);
+
+            quizContainer.appendChild(card);
+        });
+    }
+
+    // Fungsi Handle Koreksi Langsung
+    function handleAnswer(questionIndex, selectedIndex, correctIndex) {
+        const card = document.getElementById(`q-card-${questionIndex}`);
+        const options = card.getElementsByClassName('option-item');
+        const explanation = document.getElementById(`ex-${questionIndex}`);
+
+        // 1. Kunci semua opsi pada soal ini agar tidak bisa diklik ulang
+        for (let i = 0; i < options.length; i++) {
+            options[i].classList.add('disabled');
+        }
+
+        // 2. Berikan warna hijau pada jawaban yang benar secara sistem
+        options[correctIndex].classList.add('correct');
+
+        // 3. Periksa jika pilihan user benar atau salah
+        if (selectedIndex === correctIndex) {
+            correctScore++;
+            correctCountEl.innerText = correctScore;
+        } else {
+            // Jika salah, warnai opsi pilihan user dengan warna merah
+            options[selectedIndex].classList.add('wrong');
+            wrongScore++;
+            wrongCountEl.innerText = wrongScore;
+        }
+
+        // 4. Tampilkan kunci tertulis di bawahnya
+        explanation.style.display = 'block';
+    }
+
+    // Jalankan Kuis saat halaman dibuka
+    window.onload = loadQuiz;
+</script>
+
+</body>
+</html>
